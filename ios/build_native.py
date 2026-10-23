@@ -26,7 +26,7 @@ for i in range(n):
 groups={'System':['dyld_stub_binder']}
 for sym in symbols:
     if sym.startswith('_objc_') or sym.startswith('__objc_'): lib='objc'
-    elif sym.startswith('__NSConcrete') or sym=='_CC_MD5' or sym in ['_memcpy','_memset','___stack_chk_fail','___stack_chk_guard']: lib='System'
+    elif sym.startswith('__NSConcrete') or sym in ['_CC_MD5','_CCCrypt'] or sym in ['_memcpy','_memset','___stack_chk_fail','___stack_chk_guard']: lib='System'
     elif sym.startswith('_Sec') or sym.startswith('_kSec'): lib='Security'
     elif sym.startswith('_CG'): lib='CoreGraphics'
     elif sym.startswith('_CF') or sym=='___CFConstantStringClassReference': lib='CoreFoundation'
