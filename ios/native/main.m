@@ -15,6 +15,7 @@ static NSString *JSON(id value) {
 static BOOL AllowedURL(NSURL *url) {
     if(![[url scheme] isEqualToString:@"https"]) return NO;
     NSString *h=[[url host] lowercaseString];
+    if([h isEqualToString:@"api.github.com"]) return [[url path] isEqualToString:@"/repos/xzd11/mashangqu-ios-/releases/latest"];
     NSArray *hosts=@[@"h5api.m.taobao.com",@"lop-proxy.jd.com",@"mec.yto.net.cn",@"yizhan.mamayz.com",@"mcs-mimp-web.sf-express.com",@"ant.yshoufa.com",@"mobile.yangkeduo.com",@"api.pinduoduo.com"];
     for(NSUInteger i=0;i<hosts.count;i++) if([h isEqualToString:hosts[i]]) return YES;
     return NO;
@@ -29,10 +30,13 @@ static BOOL AllowedURL(NSURL *url) {
 @property(strong) id loginRequestID;
 @property(strong) NSURLSession *session;
 @property(strong) NSDictionary *pddCryptoSession;
+@property(strong) UIView *privacyCover;
 @end
 @implementation MSQController
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(protectContent:) name:UIApplicationWillResignActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(revealContent:) name:UIApplicationDidBecomeActiveNotification object:nil];
     self.view.backgroundColor=[UIColor whiteColor];
     WKWebViewConfiguration *c=[WKWebViewConfiguration new];
     c.websiteDataStore=[WKWebsiteDataStore nonPersistentDataStore];
@@ -49,6 +53,15 @@ static BOOL AllowedURL(NSURL *url) {
     sc.timeoutIntervalForResource=45;
     self.session=[NSURLSession sessionWithConfiguration:sc];
 }
+- (void)protectContent:(id)notification {
+    UIWindow *window=self.view.window;if(!window)return;
+    [self.privacyCover removeFromSuperview];
+    UIView *cover=[[UIView alloc] initWithFrame:window.bounds];cover.backgroundColor=[UIColor systemBackgroundColor];cover.autoresizingMask=18;
+    UILabel *label=[[UILabel alloc] initWithFrame:cover.bounds];label.text=@"码上取\n内容已隐藏";label.numberOfLines=0;label.textAlignment=1;label.font=[UIFont boldSystemFontOfSize:24];label.autoresizingMask=18;
+    [cover addSubview:label];[window addSubview:cover];self.privacyCover=cover;
+}
+- (void)revealContent:(id)notification {[self.privacyCover removeFromSuperview];self.privacyCover=nil;}
+- (void)dealloc {[[NSNotificationCenter defaultCenter] removeObserver:self];}
 - (void)webView:(WKWebView*)web decidePolicyForNavigationAction:(WKNavigationAction*)action decisionHandler:(void(^)(NSInteger))handler {
     NSURL *url=action.request.URL;
     // The privileged local webview never navigates to remote pages.
@@ -124,6 +137,24 @@ static BOOL AllowedURL(NSURL *url) {
         NSString *out=@"";
         for(int i=0;i<16;i++) out=[out stringByAppendingString:[NSString stringWithFormat:@"%02x",(unsigned int)hash[i]]];
         [self reply:rid value:out error:nil];
+    } else if([op isEqualToString:@"openURL"]) {
+        NSString *value=a[@"url"];NSURL *url=[value isKindOfClass:[NSString class]]?[NSURL URLWithString:value]:nil;
+        if(![[url scheme] isEqualToString:@"https"]||![[url host] isEqualToString:@"github.com"]||![[url path] hasPrefix:@"/xzd11/mashangqu-ios-/releases/"]) {[self reply:rid value:nil error:@"无效的版本下载地址"];return;}
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:^(BOOL success){[self reply:rid value:@(success) error:success?nil:@"无法打开下载页面"];}];
+    } else if([op isEqualToString:@"shareText"]) {
+        NSString *text=a[@"text"];
+        if(![text isKindOfClass:[NSString class]]||text.length>128*1024){[self reply:rid value:nil error:@"诊断日志格式无效"];return;}
+        NSString *path=[NSTemporaryDirectory() stringByAppendingPathComponent:@"Mashangqu-diagnostics.txt"];
+        NSError *writeError=nil;
+        if(![text writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&writeError]){[self reply:rid value:nil error:@"无法生成诊断文件"];return;}
+        UIActivityViewController *activity=[[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:path]] applicationActivities:nil];
+        activity.popoverPresentationController.sourceView=self.view;
+        activity.popoverPresentationController.sourceRect=CGRectMake(self.view.bounds.size.width/2,self.view.bounds.size.height/2,1,1);
+        activity.completionWithItemsHandler=^(NSString *type,BOOL completed,NSArray *items,NSError *error){
+            [[NSFileManager defaultManager] removeItemAtPath:path error:0];
+            [self reply:rid value:@(completed) error:error?@"导出未完成":nil];
+        };
+        [self presentViewController:activity animated:YES completion:0];
     } else if([op isEqualToString:@"pddCrypto"]) {
         NSString *action=a[@"action"],*sid=a[@"session"];
         if([action isEqualToString:@"clear"]) {

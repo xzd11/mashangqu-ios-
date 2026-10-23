@@ -34,6 +34,7 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 - (BOOL)hasPrefix:(NSString*)s;
 - (NSString*)lowercaseString;
 - (NSString*)description;
+- (BOOL)writeToFile:(NSString*)p atomically:(BOOL)a encoding:(NSUInteger)e error:(NSError**)error;
 @end
 @interface NSConstantString:NSString @end
 @interface NSNumber : NSObject
@@ -111,12 +112,28 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 + (id)mainQueue; - (void)addOperationWithBlock:(void(^)(void))block;
 @end
 @interface NSBundle:NSObject + (id)mainBundle; @property(readonly) NSString *resourcePath; @end
-@interface UIColor:NSObject + (id)whiteColor; - (void)setFill; @end
+@interface UIColor:NSObject + (id)systemBackgroundColor; + (id)whiteColor; - (void)setFill; @end
+@interface NSNotificationCenter:NSObject
++ (id)defaultCenter;
+- (void)addObserver:(id)o selector:(SEL)s name:(NSString*)n object:(id)obj;
+- (void)removeObserver:(id)o;
+@end
+extern NSString * const UIApplicationWillResignActiveNotification;
+extern NSString * const UIApplicationDidBecomeActiveNotification;
+@interface NSFileManager:NSObject
++ (id)defaultManager; - (BOOL)removeItemAtPath:(NSString*)p error:(NSError**)e;
+@end
+extern NSString *NSTemporaryDirectory(void);
 @interface UIView:NSObject
+@property(readonly) UIWindow *window;
 @property CGRect frame; @property(readonly) CGRect bounds;
 @property NSUInteger autoresizingMask; @property CGFloat alpha; @property BOOL userInteractionEnabled; @property BOOL accessibilityElementsHidden; @property(strong) UIColor *backgroundColor;
 - (id)initWithFrame:(CGRect)r; - (void)addSubview:(UIView*)v;
 - (void)insertSubview:(UIView*)v atIndex:(NSInteger)i; - (void)removeFromSuperview;
+@end
+@interface UIFont:NSObject + (id)boldSystemFontOfSize:(CGFloat)size; @end
+@interface UILabel:UIView
+@property(copy) NSString *text; @property NSInteger numberOfLines; @property NSInteger textAlignment; @property(strong) UIFont *font;
 @end
 @interface UIGestureRecognizer:NSObject @property BOOL enabled; @end
 @interface UIScrollView:UIView
@@ -162,7 +179,10 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 @end
 @interface UIScreen:NSObject + (UIScreen*)mainScreen; @property(readonly) CGRect bounds; @end
 @protocol UIApplicationDelegate <NSObject> @end
-@interface UIApplication:NSObject @end
+@interface UIApplication:NSObject
++ (id)sharedApplication;
+- (void)openURL:(NSURL*)url options:(NSDictionary*)options completionHandler:(void(^)(BOOL))h;
+@end
 extern int UIApplicationMain(int,char**,NSString*,NSString*);
 extern NSString *NSStringFromClass(id c);
 @protocol WKScriptMessageHandler <NSObject>
