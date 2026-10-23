@@ -1,120 +1,126 @@
 <div align="center">
 
-# 码上取 · MashangQu
+# 码上取 · MashangQu iOS
 
 **一个 App，取遍所有驿站。**
 
 拼多多 · 淘宝菜鸟 · 京东 · 顺丰 · 如意邻里 —— 身份码与快递信息一站式聚合
 
-[![Platform](https://img.shields.io/badge/platform-Android%207.0%2B-3DDC84?logo=android&logoColor=white)](#)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.x-7F52FF?logo=kotlin&logoColor=white)](#)
-[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)](#)
-[![Min SDK](https://img.shields.io/badge/minSdk-26-34A853)](#)
-[![Release](https://img.shields.io/github/v/release/njpemo/mashangqu?color=F57C00)](https://github.com/njpemo/mashangqu/releases)
+[![Platform](https://img.shields.io/badge/platform-iOS%2015.0%2B-000000?logo=apple&logoColor=white)](#)
+[![Architecture](https://img.shields.io/badge/architecture-ARM64-4285F4)](#)
+[![Version](https://img.shields.io/badge/version-1.0.0-F57C00)](https://github.com/xzd11/mashangqu-ios-/releases)
+[![License](https://img.shields.io/badge/license-MIT-34A853)](LICENSE)
 
 </div>
 
 ---
 
-<div align="center">
-
-<p>
-  <img src="docs/images/page-identity.png" width="240" />
-  <img src="docs/images/page-express.png" width="240" />
-  <img src="docs/images/page-mine.png" width="240" />
-</p>
-
-*身份码大屏出示 ｜ 快递列表聚合 ｜ 登录态与日志管理*
-
-</div>
+> **社区编译版本，使用 AI 编写。仅在 iPhone 15 上验证使用，其他机型尚未验证。**
+>
+> 本版本基于 [njpemo/mashangqu](https://github.com/njpemo/mashangqu) 的业务逻辑移植，为非官方 iOS 社区版本。
 
 ## ✨ 核心特性
 
 | | 特性 | 说明 |
 |:---:|---|---|
-| 🎫 | **五平台身份码聚合** | 拼多多 / 淘宝菜鸟 / 京东 / 顺丰 / 如意邻里，大幅二维码条码一屏出示，下拉刷新 + 可配置自动刷新；顺丰身份码**本地公式生成**，零网络调用 |
-| 📦 | **快递列表聚合** | 多平台站点包裹统一视图，按平台 / 站点筛选，跨平台按运单号去重合并、互补查码，本地缓存离线可查 |
-| 🔢 | **取件码直达** | 单件快递取件码大字大图展示，驿站柜台一步到位 |
-| 🔐 | **登录态守护** | 启动自动巡检各平台凭据有效性，失效标红、一键重登 |
-| ⬆️ | **应用内更新** | 启动静默检查新版本，应用内下载 APK 直接拉起安装 |
-| 📋 | **调试日志导出** | 内置实时日志面板，支持一键导出 txt 排查问题 |
-
-## 🛡️ 隐私与架构
-
-**无后端依赖、数据不出设备。** 登录凭据存放于本机 Keystore + EncryptedSharedPreferences 加密存储，所有请求由 App 直连平台接口，不经过任何第三方服务器。
-
-```
-┌────────────────────────── app（宿主壳）──────────────────────────┐
-│   身份码页 ｜ 快递页 ｜ 我的页 ｜ 导航 ｜ 应用内更新             │
-├──────────────────────────── core ────────────────────────────────┤
-│   model（统一模型）  network（OkHttp）  storage（加密存储/Room） │
-│   webview（通用登录）  yyb（远程签发服务）                       │
-├────────────────────────── platform ──────────────────────────────┤
-│   api（PlatformAdapter 契约）                                    │
-│   pdd ｜ taobao ｜ jd ｜ sf ｜ ryll —— 各平台适配器实现          │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-### 登录方式
-
-| 平台 | 方式 |
-|---|---|
-| 淘宝 | 手机号 + 短信验证码（App 内协议登录，含风控二次验证） |
-| 京东 / 顺丰 / 拼多多 | 微信 code 换链（YYB-GO 远程签发，App 直连平台换链） |
-| 如意邻里（圆通） | 手机号 + 图形验证码 + 短信验证码（全程 App 内完成） |
+| 🎫 | **五平台身份码聚合** | 集中展示与切换淘宝／菜鸟、拼多多、京东、顺丰、如意邻里的身份码 |
+| 🔎 | **条形码大屏展示** | 主页条形码横向全屏放大，旋转屏幕时调整布局，过期时停止展示 |
+| 📦 | **快递列表聚合** | 支持平台筛选及相同运单合并；京东暂不支持快递列表 |
+| 🔢 | **菜鸟取件码查询** | 输入快递运单号查询，或点击卡片上的「通过菜鸟查询取件码」，结果显示在卡片中并注明来源 |
+| 🔄 | **前台自动刷新** | 可配置自动刷新；主界面关闭双击、捏合缩放，减少误操作 |
+| 🔐 | **本机凭据保存** | 登录凭据和应用缓存保存于本机钥匙串，业务请求直连各平台 |
 
 ## 📲 下载安装
 
-从 [**Releases**](https://github.com/njpemo/mashangqu/releases) 下载最新 APK，或直接获取当前版本：
+从 [**Releases**](https://github.com/xzd11/mashangqu-ios-/releases) 下载 iOS 安装包：
 
-> [mashangqu-v1.0.8.apk](https://github.com/njpemo/mashangqu/releases/download/v1.0.8/mashangqu-v1.0.8.apk)
+> [mashangqu-ios-v1.0.0.ipa](https://github.com/xzd11/mashangqu-ios-/releases/download/v1.0.0/mashangqu-ios-v1.0.0.ipa)
 
-安装后，后续新版本可通过 App 内更新自动获取。
+1. 下载 `.ipa` 文件，无需解压。
+2. 使用自己的签名工具重新签名后安装。
+3. 打开应用，登录所需平台后使用。
+
+| 项目 | 说明 |
+|---|---|
+| 版本 | 1.0.0（构建 9） |
+| 架构 | ARM64 真机 |
+| 最低系统配置 | iOS／iPadOS 15.0 |
+| 已验证设备 | **仅 iPhone 15** |
+| Bundle ID | `ink.mashangqu.ios` |
+| 更新方式 | 下载新版 IPA，沿用同一签名身份和 Bundle ID 覆盖安装 |
+
+最低系统配置不代表所有系统及机型已完成兼容性验证。安装包需要自行签名。
+
+<details>
+<summary><b>取件码查询说明</b></summary>
+
+- 需要先登录淘宝／菜鸟账户。
+- 查询使用的是快递运单号，不是购物订单号。
+- 查询范围以当前登录账户可访问的数据为准。
+- 已取件、查无结果或仅返回脱敏信息时会明确提示；无法从脱敏信息还原完整取件码。
+
+</details>
+
+## 🛡️ 隐私与架构
+
+应用使用 UIKit／WKWebView 容器与本地网页界面。原生桥接负责网络请求、钥匙串存储和二维码／条形码生成。账户登录通过对应平台页面完成，业务请求直接访问平台接口。
+
+平台接口和登录流程可能变化，相关功能届时可能需要更新。
 
 <details>
 <summary><b>从源码构建</b></summary>
 
-- Android Studio ｜ Kotlin 2.x + Jetpack Compose ｜ minSdk 26 / targetSdk 34
+源码位于 [`ios/`](ios/)，构建方法见 [`ios/README.md`](ios/README.md)。
+
+Linux 环境安装 `ios/requirements.txt` 并准备 LLVM `ld64.lld` 后，在 `ios/` 目录执行：
 
 ```bash
-cd app
-.\gradlew.bat assembleDebug
+python build_native.py
+python package_ipa.py
 ```
 
-产物位于 `app/app/build/outputs/apk/`。
+构建生成供自行签名的 IPA。版本为 iOS 1.0.0，不与上游 Android 版本号同步。
 
 </details>
 
 <details>
-<summary><b>发版机制</b></summary>
+<summary><b>发布文件与校验</b></summary>
 
-更新源为自建接口 `https://msq.l2.ink/api/check.php`（虚拟主机 PHP 代理，服务端持有蒲公英 Key，见 `server/check.php`）：
+- Release 标签：`v1.0.0`。
+- 安装包：`mashangqu-ios-v1.0.0.ipa`。
+- 校验文件：`SHA256SUMS`。
+- 更新记录：[`docs/releases/v1.0.0.md`](docs/releases/v1.0.0.md)。
 
-1. 修改 `update/latest.json` 版本号，`.\gradlew.bat assembleRelease` 构建；
-2. APK 上传蒲公英即完成发版——check.php 自动返回最新包信息（versionCode 取包上传时间，零手动维护）；
-3. 客户端语义化比对版本号，仅在有新版时弹窗提示。
+安装包使用与上游类似的带版本号命名方式，发布到本仓库 Releases。
 
 </details>
 
 ## 🗂️ 项目结构
 
-```
-app/
-├── app/                宿主壳：页面、导航、应用内更新
-├── core/
-│   ├── model/          统一数据模型与错误模型
-│   ├── network/        OkHttp/Retrofit 基础配置
-│   ├── storage/        Keystore 加密存储、Room 缓存、DataStore 设置
-│   ├── webview/        通用登录 WebView 组件
-│   └── yyb/            YYB-GO 远程服务 HTTP 客户端
-└── platform/
-    ├── api/            PlatformAdapter 接口契约
-    └── pdd/ taobao/ jd/ sf/ ryll/   平台适配器实现
-```
+| 路径 | 内容 |
+|---|---|
+| `ios/native/` | 原生容器、网络桥接、钥匙串和码图生成 |
+| `ios/web/` | 本地界面与平台适配逻辑 |
+| `ios/assets/` | 应用图标 |
+| `ios/Info.plist` | iOS 版本与应用配置 |
+| `docs/releases/` | iOS 更新记录与校验文件 |
+| `app/`、`server/`、`update/` | 保留的上游 Android 工程与相关文件 |
 
-## ⚠️ 免责声明
+## 📝 更新记录
 
-本项目**仅供个人学习与自用**，不分发、不商用。凭据仅存储于本机（Keystore + EncryptedSharedPreferences 加密），永不上传。使用本项目产生的一切账号风险由使用者自行承担，请遵守各平台用户协议。
+**v1.0.0 · 首个 iOS 社区正式版**
+
+- 修复启动闪退，调整拼多多、顺丰和京东登录页面布局。
+- 完善身份码刷新，菜鸟使用条形码展示。
+- 新增菜鸟运单取件码查询及快递列表一键查码。
+- 主页条形码改为横向全屏放大，关闭双击误缩放。
+- 移除界面测试标识。
+
+## 🤝 开源与致谢
+
+原项目：[njpemo/mashangqu](https://github.com/njpemo/mashangqu)，原作者 **njpemo**。本 iOS 移植版保留原作者署名，遵循 [MIT License](LICENSE)。
+
+原项目 Android 说明另存于 [`docs/README-upstream.md`](docs/README-upstream.md)，其中 Android 专属功能不代表 iOS 功能。
 
 ---
 
