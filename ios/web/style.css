@@ -14,3 +14,7 @@ body.code-viewer-open{overflow:hidden}
 #code-viewer-image[hidden],#code-viewer-notice[hidden]{display:none}
 #code-viewer-notice{font-size:20px;line-height:1.6;color:#9c3530;text-align:center}
 #code-viewer-value{text-align:center;font:16px ui-monospace,monospace;word-break:break-all;line-height:1.3;min-height:20px;user-select:all;-webkit-user-select:all}
+
+.pdd-login-qr{text-align:center;margin:16px 0}.pdd-login-qr img{width:min(260px,100%);height:auto;image-rendering:pixelated;background:white;padding:18px;border-radius:12px}
+
+.verify-heading{display:flex;align-items:center;gap:12px;margin:12px 0 20px}.verify-heading h3{margin:0 0 4px;font-size:18px}.verify-question{font-size:18px;line-height:1.55;margin:16px 0 8px}.verify-options{display:grid;gap:10px}.verify-option{display:flex;align-items:center;gap:12px;padding:14px;margin:0;border:1px solid var(--line);border-radius:13px;background:var(--bg);color:var(--ink);font-size:15px}.verify-option.selected{border-color:var(--accent);background:var(--soft)}.verify-option input{width:20px;height:20px;flex-shrink:0;accent-color:var(--accent);margin:0}.verify-option span{overflow-wrap:anywhere}.image-options{grid-template-columns:repeat(3,minmax(0,1fr))}.image-options .verify-option{position:relative;padding:4px}.image-options input{position:absolute;top:8px;left:8px}.verify-option img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px}

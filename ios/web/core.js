@@ -1,7 +1,7 @@
 'use strict';
 const pending = new Map(); let serial = 0;
 function native(op,args={}) {return new Promise((resolve,reject)=>{
- const id=++serial; const timer=setTimeout(()=>{pending.delete(id);reject(Error('操作超时，请重试'));},op==='login'?600000:60000);
+ const id=++serial; const timer=setTimeout(()=>{pending.delete(id);reject(Error('操作超时，请重试'));},(op==='login'||op==='shareCode')?600000:60000);
  pending.set(id,{resolve,reject,timer});
  if(window.webkit?.messageHandlers?.bridge) window.webkit.messageHandlers.bridge.postMessage({id,op,args});
  else {clearTimeout(timer);pending.delete(id);reject(Error('请在 iOS 应用内使用此功能'));}
