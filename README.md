@@ -8,7 +8,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-iOS%2015.0%2B-000000?logo=apple&logoColor=white)](#)
 [![Architecture](https://img.shields.io/badge/architecture-ARM64-4285F4)](#)
-[![Version](https://img.shields.io/badge/version-1.0.3-F57C00)](https://github.com/xzd11/mashangqu-ios-/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-F57C00)](https://github.com/xzd11/mashangqu-ios-/releases)
 [![License](https://img.shields.io/badge/license-MIT-34A853)](LICENSE)
 
 </div>
@@ -17,7 +17,7 @@
 
 > **社区编译版本，使用 AI 编写。仅在 iPhone 15 上验证使用，其他机型尚未验证。**
 >
-> 1.0.1–1.0.3 的新增扫码登录与内置验证已通过模拟流程和编译检查，真实账户验证及客户端是否保持在线仍待真机确认。
+> 用户反馈 1.1.0 测试无问题；验证范围仅为 iPhone 15，其他设备尚未验证。自动化检查与用户设备反馈分别记录。
 >
 > 本版本基于 [njpemo/mashangqu](https://github.com/njpemo/mashangqu) 的业务逻辑移植，为非官方 iOS 社区版本。
 
@@ -30,6 +30,12 @@
 | 📦 | **快递列表聚合** | 支持平台筛选及相同运单合并；京东暂不支持快递列表 |
 | 🔢 | **菜鸟取件码查询** | 输入快递运单号查询，或点击卡片上的「通过菜鸟查询取件码」，结果显示在卡片中并注明来源 |
 | ✅ | **已取与本机删码** | 点击「已取」移除待取记录与本机取件码，刷新和重启后不恢复旧码；不修改平台取件状态 |
+| 🗂️ | **已取记录与撤销** | 查看已取记录、撤销恢复待取，旧取件码需重新查询；记录按账户隔离 |
+| 🏪 | **按驿站分组** | 同一站点快递集中展示，可关闭分组 |
+| 🩺 | **登录状态检查** | 单独或批量检查，区分登录过期、安全验证和网络异常 |
+| ⬆️ | **应用内更新检查** | 展示 GitHub 正式版更新说明，打开发布页下载，仍需自行签名 |
+| 🙈 | **后台隐私遮挡** | 离开前台时遮挡窗口，返回后恢复 |
+| 📋 | **脱敏诊断导出** | 系统分享导出诊断文件，不含凭据、手机号、运单号及取件码，不自动上传 |
 | 📷 | **拼多多扫码登录** | 使用拼多多 App 扫一扫确认授权，支持保存二维码、过期刷新 |
 | 🛡️ | **内置安全验证** | 短信、文字单选／多选、图片题使用统一样式的应用内界面，滑块等保留官方验证 |
 | 🔄 | **前台自动刷新** | 可配置自动刷新；主界面关闭双击、捏合缩放，减少误操作 |
@@ -39,7 +45,7 @@
 
 从 [**Releases**](https://github.com/xzd11/mashangqu-ios-/releases) 下载 iOS 安装包：
 
-> [mashangqu-ios-v1.0.3.ipa](https://github.com/xzd11/mashangqu-ios-/releases/download/v1.0.3/mashangqu-ios-v1.0.3.ipa)
+> [mashangqu-ios-v1.1.0.ipa](https://github.com/xzd11/mashangqu-ios-/releases/download/v1.1.0/mashangqu-ios-v1.1.0.ipa)
 
 1. 下载 `.ipa` 文件，无需解压。
 2. 使用自己的签名工具重新签名后安装。
@@ -47,7 +53,7 @@
 
 | 项目 | 说明 |
 |---|---|
-| 版本 | 1.0.3（构建 12） |
+| 版本 | 1.1.0（构建 13） |
 | 架构 | ARM64 真机 |
 | 最低系统配置 | iOS／iPadOS 15.0 |
 | 已验证设备 | **仅 iPhone 15** |
@@ -84,17 +90,17 @@ python build_native.py
 python package_ipa.py
 ```
 
-构建生成供自行签名的 IPA。版本为 iOS 1.0.3，不与上游 Android 版本号同步。
+构建生成供自行签名的 IPA。版本为 iOS 1.1.0，不与上游 Android 版本号同步。
 
 </details>
 
 <details>
 <summary><b>发布文件与校验</b></summary>
 
-- Release 标签：`v1.0.3`。
-- 安装包：`mashangqu-ios-v1.0.3.ipa`。
+- Release 标签：`v1.1.0`。
+- 安装包：`mashangqu-ios-v1.1.0.ipa`。
 - 校验文件：`SHA256SUMS`。
-- 更新记录：[`docs/releases/v1.0.3.md`](docs/releases/v1.0.3.md)。
+- 更新记录：[`docs/releases/v1.1.0.md`](docs/releases/v1.1.0.md)。
 
 安装包使用与上游类似的带版本号命名方式，发布到本仓库 Releases。
 
@@ -113,7 +119,7 @@ python package_ipa.py
 
 ## 📝 更新记录
 
-**v1.0.3 · 拼多多内置验证与累计更新**
+**v1.1.0 · 拼多多内置验证与累计更新**
 
 - 短信验证码、文字单选／多选和图片题改用统一样式的应用内验证界面。
 - 答错提示重试，选择题按平台要求切换下一题；不支持的验证类型可转官方页面。
@@ -121,7 +127,7 @@ python package_ipa.py
 - 包含 v1.0.2 的拼多多扫码授权、二维码保存和过期刷新。
 - 包含 v1.0.1 的「已取」按钮与本机取件码删除、刷新防恢复功能。
 
-[完整更新说明](docs/releases/v1.0.3.md)
+[完整更新说明](docs/releases/v1.1.0.md)
 
 
 **v1.0.0 · 首个 iOS 社区正式版**
