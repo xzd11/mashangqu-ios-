@@ -32,7 +32,7 @@ def check(data):
         assert offset%8==0,f'{name}: misaligned pointer offset {offset}'
         offsets[name]=offset
     assert offsets.get('_OBJC_IVAR_$_MSQDelegate._window')==8,'Delegate window offset must be 8'
-    assert len(offsets)==10,'Missing expected controller property offsets'
+    assert len(offsets)==11,'Missing expected controller property offsets'
     return offsets
 
 if __name__=='__main__':

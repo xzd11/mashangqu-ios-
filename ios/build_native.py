@@ -34,7 +34,7 @@ for sym in symbols:
     elif '_$_' in sym:
         cls=sym.split('_$_')[1]
         lib='UIKit' if cls.startswith('UI') else 'WebKit' if cls.startswith('WK') else 'CoreImage' if cls.startswith('CI') else 'Foundation'
-    elif sym in ['_NSStringFromClass','___NSDictionary0__','___NSArray0__']: lib='Foundation'
+    elif sym in ['_NSStringFromClass','_NSTemporaryDirectory','___NSDictionary0__','___NSArray0__']: lib='Foundation'
     else: raise SystemExit('Unmapped symbol '+sym)
     groups.setdefault(lib,[]).append(sym)
 stubs=build/'stubs';stubs.mkdir(exist_ok=True)
