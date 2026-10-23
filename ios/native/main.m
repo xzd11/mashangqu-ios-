@@ -4,6 +4,7 @@
 #import <CoreImage/CoreImage.h>
 #import <Security/Security.h>
 #import <CommonCrypto/CommonDigest.h>
+#import <CommonCrypto/CommonCryptor.h>
 #else
 #import "AppleABI.h"
 #endif
@@ -27,6 +28,7 @@ static BOOL AllowedURL(NSURL *url) {
 @property(strong) NSString *loginPlatform;
 @property(strong) id loginRequestID;
 @property(strong) NSURLSession *session;
+@property(strong) NSDictionary *pddCryptoSession;
 @end
 @implementation MSQController
 - (void)viewDidLoad {
@@ -122,7 +124,51 @@ static BOOL AllowedURL(NSURL *url) {
         NSString *out=@"";
         for(int i=0;i<16;i++) out=[out stringByAppendingString:[NSString stringWithFormat:@"%02x",(unsigned int)hash[i]]];
         [self reply:rid value:out error:nil];
-    } else if([op isEqualToString:@"code"]) {
+    } else if([op isEqualToString:@"pddCrypto"]) {
+        NSString *action=a[@"action"],*sid=a[@"session"];
+        if([action isEqualToString:@"clear"]) {
+            if([sid isKindOfClass:[NSString class]] && [sid isEqualToString:self.pddCryptoSession[@"id"]])self.pddCryptoSession=nil;
+            [self reply:rid value:@YES error:nil];return;
+        }
+        if([action isEqualToString:@"new"]) {
+            unsigned char random[48];
+            if(SecRandomCopyBytes(kSecRandomDefault,48,random)!=0){[self reply:rid value:nil error:@"无法生成安全随机数"];return;}
+            const char *alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            unsigned char chars[48];for(int i=0;i<48;i++)chars[i]=alphabet[random[i]&63];
+            NSData *key=[NSData dataWithBytes:chars length:16],*iv=[NSData dataWithBytes:chars+16 length:16];
+            NSString *identifier=[[NSString alloc] initWithData:[NSData dataWithBytes:chars+32 length:16] encoding:NSUTF8StringEncoding];
+            NSData *der=[[NSData alloc] initWithBase64EncodedString:@"MIIBCgKCAQEAtfMuf2KsVE4WwYU2bMTXQ6KMbSPZRkiGJTChqYQJDta1nGyPBMSHQkXybJaTyAha5eNqQR0p12nCIQ/+3+MwJUgS2IxVnpYYrpRf1K0Zf+jkwUi0OfPCd+eLOLkAWHWcjqw+Z8em60s7dmUJcbymtuQfx0Q3pAEuzkENiwrRlMG1zdi+2JFnAnSk+IqqRDg2GjhKXKiepturJ+eTSluC79WFTRFIAxlVcurFCQjJM1pSO4GtDFr6jlDGJrQDll8mIs84vdIkaoB7VS1zRNbuGm4wpOOzpKlMbKdsOpZ4JjlSH/kdPAwHYVDxF97h424KNeilCsGkZWhtrRq3B4WSwQIDAQAB" options:0];
+            NSDictionary *attributes=@{(__bridge id)kSecAttrKeyType:(__bridge id)kSecAttrKeyTypeRSA,(__bridge id)kSecAttrKeyClass:(__bridge id)kSecAttrKeyClassPublic,(__bridge id)kSecAttrKeySizeInBits:@2048};
+            SecKeyRef rsa=SecKeyCreateWithData((__bridge CFDataRef)der,(__bridge CFDictionaryRef)attributes,0);
+            if(!rsa){[self reply:rid value:nil error:@"无法创建验证加密密钥"];return;}
+            CFDataRef encKey=SecKeyCreateEncryptedData(rsa,kSecKeyAlgorithmRSAEncryptionPKCS1,(__bridge CFDataRef)key,0);
+            CFDataRef encIV=SecKeyCreateEncryptedData(rsa,kSecKeyAlgorithmRSAEncryptionPKCS1,(__bridge CFDataRef)iv,0);
+            CFRelease(rsa);
+            if(!encKey||!encIV){if(encKey)CFRelease(encKey);if(encIV)CFRelease(encIV);[self reply:rid value:nil error:@"验证密钥交换失败"];return;}
+            NSString *key64=[(__bridge NSData*)encKey base64EncodedStringWithOptions:0],*iv64=[(__bridge NSData*)encIV base64EncodedStringWithOptions:0];
+            CFRelease(encKey);CFRelease(encIV);
+            self.pddCryptoSession=@{@"id":identifier,@"key":key,@"iv":iv};
+            [self reply:rid value:@{@"session":identifier,@"a":key64,@"v":iv64} error:nil];return;
+        }
+        NSDictionary *session=self.pddCryptoSession;
+        if(![sid isKindOfClass:[NSString class]]||![sid isEqualToString:session[@"id"]]){[self reply:rid value:nil error:@"验证会话已失效，请重新扫码"];return;}
+        BOOL encrypt=[action isEqualToString:@"encrypt"];
+        if(!encrypt&&![action isEqualToString:@"decrypt"]){[self reply:rid value:nil error:@"无效的验证加密操作"];return;}
+        NSData *input=nil;
+        if(encrypt && [a[@"data"] isKindOfClass:[NSDictionary class]])input=[JSON(a[@"data"]) dataUsingEncoding:NSUTF8StringEncoding];
+        else if(!encrypt && [a[@"content"] isKindOfClass:[NSString class]] && [a[@"content"] length]<128*1024)input=[[NSData alloc] initWithBase64EncodedString:a[@"content"] options:0];
+        if(!input||input.length>64*1024){[self reply:rid value:nil error:@"验证加密数据格式无效"];return;}
+        NSData *key=session[@"key"],*iv=session[@"iv"];
+        NSMutableData *output=[NSMutableData dataWithLength:input.length+16];NSUInteger written=0;
+        int result=CCCrypt(encrypt?0:1,0,1,key.bytes,16,iv.bytes,input.bytes,input.length,output.mutableBytes,output.length,&written);
+        if(result!=0){[self reply:rid value:nil error:@"验证数据加解密失败"];return;}
+        output.length=written;
+        if(encrypt)[self reply:rid value:[output base64EncodedStringWithOptions:0] error:nil];
+        else {
+            id json=[NSJSONSerialization JSONObjectWithData:output options:0 error:0];
+            [self reply:rid value:json error:json?nil:@"验证响应解析失败"];
+        }
+    } else if(([op isEqualToString:@"code"] || [op isEqualToString:@"shareCode"])) {
         NSString *s=a[@"text"]; if(![s isKindOfClass:[NSString class]]||s.length>2500) { [self reply:rid value:nil error:@"码内容无效"]; return; }
         BOOL bar=[a[@"type"] isEqualToString:@"BARCODE"];
         CIFilter *f=[CIFilter filterWithName:bar?@"CICode128BarcodeGenerator":@"CIQRCodeGenerator"];
@@ -132,8 +178,26 @@ static BOOL AllowedURL(NSURL *url) {
         if(!image) { [self reply:rid value:nil error:@"无法生成码图，请检查码内容"]; return; }
         void *cg=[[CIContext contextWithOptions:nil] createCGImage:image fromRect:image.extent];
         if(!cg) { [self reply:rid value:nil error:@"无法绘制码图"]; return; }
-        NSData *png=UIImagePNGRepresentation([UIImage imageWithCGImage:cg]); CGImageRelease(cg);
-        [self reply:rid value:[@"data:image/png;base64," stringByAppendingString:[png base64EncodedStringWithOptions:0]] error:nil];
+        UIImage *rendered=[UIImage imageWithCGImage:cg]; CGImageRelease(cg);
+        if([op isEqualToString:@"shareCode"]) {
+            // A white quiet zone and nearest-neighbour scale make the saved QR scannable.
+            UIGraphicsBeginImageContextWithOptions((CGSize){640,640},YES,1);
+            [[UIColor whiteColor] setFill]; UIRectFill(CGRectMake(0,0,640,640));
+            CGContextSetInterpolationQuality(UIGraphicsGetCurrentContext(),1);
+            [rendered drawInRect:CGRectMake(40,40,560,560)];
+            UIImage *shared=UIGraphicsGetImageFromCurrentImageContext(); UIGraphicsEndImageContext();
+            if(!shared){[self reply:rid value:nil error:@"无法生成分享图片，请截屏保存二维码"];return;}
+            UIActivityViewController *activity=[[UIActivityViewController alloc] initWithActivityItems:@[shared] applicationActivities:nil];
+            activity.popoverPresentationController.sourceView=self.view;
+            activity.popoverPresentationController.sourceRect=CGRectMake(self.view.bounds.size.width/2,self.view.bounds.size.height/2,1,1);
+            activity.completionWithItemsHandler=^(NSString *type,BOOL completed,NSArray *items,NSError *error){
+                [self reply:rid value:@(completed) error:error?error.localizedDescription:nil];
+            };
+            [self presentViewController:activity animated:YES completion:0];
+        } else {
+            NSData *png=UIImagePNGRepresentation(rendered);
+            [self reply:rid value:[@"data:image/png;base64," stringByAppendingString:[png base64EncodedStringWithOptions:0]] error:nil];
+        }
     } else if([op isEqualToString:@"anti"]) {
         if(self.antiRequestID){[self reply:rid value:nil error:@"校验模块正在运行，请稍后再试"];return;}
         NSString *path=[[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"web"] stringByAppendingPathComponent:@"pdd.js"];
@@ -189,6 +253,14 @@ static BOOL AllowedURL(NSURL *url) {
         NSDictionary *urls=@{@"TAOBAO":@"https://login.m.taobao.com/login.htm",@"JD":@"https://plogin.m.jd.com/login/login",@"PDD":@"https://mobile.yangkeduo.com/login.html",@"SF":@"https://mcs-mimp-web.sf-express.com/login"};
         NSString *platform=a[@"platform"]; NSString *entry=urls[platform];
         if(!entry) { [self reply:rid value:nil error:@"此平台请使用短信登录"]; return; }
+        if(a[@"url"]) {
+            NSString *custom=a[@"url"];
+            NSURL *verify=[custom isKindOfClass:[NSString class]]?[NSURL URLWithString:custom]:nil;
+            if(![platform isEqualToString:@"PDD"] || ![[verify scheme] isEqualToString:@"https"] || ![[verify host] isEqualToString:@"mobile.yangkeduo.com"] || ![[verify path] isEqualToString:@"/psnl_verification.html"]) {
+                [self reply:rid value:nil error:@"无效的拼多多验证页面"];return;
+            }
+            entry=custom;
+        }
         self.loginRequestID=rid; self.loginPlatform=platform;
         BOOL useSafeLoginLayout=[platform isEqualToString:@"PDD"] || [platform isEqualToString:@"JD"] || [platform isEqualToString:@"SF"];
         WKWebViewConfiguration *c=[WKWebViewConfiguration new];

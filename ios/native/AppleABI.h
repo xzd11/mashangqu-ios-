@@ -59,8 +59,14 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 @end
 @interface NSNull:NSObject + (id)null; @end
 @interface NSData : NSObject
++ (id)dataWithBytes:(const void*)bytes length:(NSUInteger)length;
+- (id)initWithBase64EncodedString:(NSString*)s options:(NSUInteger)o;
 @property(readonly) const void *bytes; @property(readonly) NSUInteger length;
 - (NSString*)base64EncodedStringWithOptions:(NSUInteger)o;
+@end
+@interface NSMutableData:NSData
++ (id)dataWithLength:(NSUInteger)length;
+@property(readonly) void *mutableBytes; @property NSUInteger length;
 @end
 @interface NSJSONSerialization:NSObject
 + (NSData*)dataWithJSONObject:(id)o options:(NSUInteger)options error:(NSError**)e;
@@ -70,7 +76,7 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 @interface NSURL:NSObject
 + (id)URLWithString:(NSString*)s;
 + (id)fileURLWithPath:(NSString*)s;
-@property(readonly) NSString *host; @property(readonly) NSString *scheme;
+@property(readonly) NSString *path; @property(readonly) NSString *host; @property(readonly) NSString *scheme;
 @property(readonly) BOOL isFileURL;
 @end
 @interface NSURLRequest:NSObject
@@ -105,7 +111,7 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 + (id)mainQueue; - (void)addOperationWithBlock:(void(^)(void))block;
 @end
 @interface NSBundle:NSObject + (id)mainBundle; @property(readonly) NSString *resourcePath; @end
-@interface UIColor:NSObject + (id)whiteColor; @end
+@interface UIColor:NSObject + (id)whiteColor; - (void)setFill; @end
 @interface UIView:NSObject
 @property CGRect frame; @property(readonly) CGRect bounds;
 @property NSUInteger autoresizingMask; @property CGFloat alpha; @property BOOL userInteractionEnabled; @property BOOL accessibilityElementsHidden; @property(strong) UIColor *backgroundColor;
@@ -125,6 +131,14 @@ __attribute__((objc_root_class)) @interface NSObject <NSObject> {
 - (void)viewDidLoad;
 - (void)presentViewController:(UIViewController*)c animated:(BOOL)b completion:(void(^)(void))block;
 - (void)dismissViewControllerAnimated:(BOOL)b completion:(void(^)(void))block;
+@end
+@interface UIPopoverPresentationController:NSObject
+@property(strong) UIView *sourceView; @property CGRect sourceRect;
+@end
+@interface UIActivityViewController:UIViewController
+- (id)initWithActivityItems:(NSArray*)items applicationActivities:(NSArray*)activities;
+@property(readonly) UIPopoverPresentationController *popoverPresentationController;
+@property(copy) void(^completionWithItemsHandler)(NSString*,BOOL,NSArray*,NSError*);
 @end
 @interface UINavigationBar:UIView @property BOOL translucent; @end
 @interface UINavigationController:UIViewController
@@ -195,7 +209,15 @@ extern NSString *NSStringFromClass(id c);
 + (id)contextWithOptions:(NSDictionary*)options;
 - (void*)createCGImage:(CIImage*)image fromRect:(CGRect)r;
 @end
-@interface UIImage:NSObject + (id)imageWithCGImage:(void*)image; @end
+@interface UIImage:NSObject + (id)imageWithCGImage:(void*)image;
+- (void)drawInRect:(CGRect)r;
+@end
+extern void UIGraphicsBeginImageContextWithOptions(CGSize,BOOL,CGFloat);
+extern void *UIGraphicsGetCurrentContext(void);
+extern void CGContextSetInterpolationQuality(void*,int);
+extern void UIRectFill(CGRect);
+extern UIImage *UIGraphicsGetImageFromCurrentImageContext(void);
+extern void UIGraphicsEndImageContext(void);
 extern NSData *UIImagePNGRepresentation(UIImage*);
 extern void CGImageRelease(void*);
 typedef const void *CFTypeRef;
@@ -206,3 +228,14 @@ extern int SecItemCopyMatching(CFDictionaryRef,CFTypeRef*);
 extern int SecItemDelete(CFDictionaryRef);
 extern void CFRelease(CFTypeRef);
 extern unsigned char *CC_MD5(const void*,unsigned int,unsigned char*);
+
+// Security / CommonCrypto public APIs used only for short-lived PDD verification sessions.
+typedef CFTypeRef CFDataRef;
+typedef CFTypeRef SecKeyRef;
+typedef CFTypeRef CFErrorRef;
+extern const CFTypeRef kSecAttrKeyType,kSecAttrKeyTypeRSA,kSecAttrKeyClass,kSecAttrKeyClassPublic,kSecAttrKeySizeInBits,kSecKeyAlgorithmRSAEncryptionPKCS1;
+extern const void *kSecRandomDefault;
+extern int SecRandomCopyBytes(const void*,unsigned long,unsigned char*);
+extern SecKeyRef SecKeyCreateWithData(CFDataRef,CFDictionaryRef,CFErrorRef*);
+extern CFDataRef SecKeyCreateEncryptedData(SecKeyRef,CFTypeRef,CFDataRef,CFErrorRef*);
+extern int CCCrypt(unsigned int,unsigned int,unsigned int,const void*,unsigned long,const void*,const void*,unsigned long,void*,unsigned long,unsigned long*);
