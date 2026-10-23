@@ -5,7 +5,7 @@ let pddQr=null;
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ago=t=>t?new Date(t).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'尚未刷新';
-function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('show'),4500);}
+function toast(s,action){const box=$('toast');box.textContent=s;if(action){const button=document.createElement('button');button.textContent=action.label;button.className='toast-action';button.onclick=()=>{box.classList.remove('show');action.run();};box.appendChild(button);}box.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>box.classList.remove('show'),action?7000:4500);}
 function modal(title,content){stopPddQr();$('modal-title').textContent=title;$('modal-content').innerHTML=content;$('modal').hidden=false;}
 let expandedPlatform=null,viewerTimer=null,viewerPreviousFocus=null;
 function layoutCodeViewer(){
@@ -46,7 +46,7 @@ $('close-modal').onclick=()=>{stopPddQr();$('modal').hidden=true;};
 $('modal').onclick=e=>{if(e.target===$('modal')){stopPddQr();$('modal').hidden=true;}};
 function badge(p){return `<span class="badge" style="background:${Platforms[p].color}">${esc(Platforms[p].name[0])}</span>`;}
 function codeCard(p){const info=Platforms[p],cred=state.credentials[p],c=codes[p],expired=c?.expires&&c.expires<=Date.now();
-return `<article class="card"><div class="cardtop">${badge(p)}<div><h2>${info.name}</h2><div class="caption">${cred?'本机账户已保存':'登录后获取身份码'}</div></div><span class="pill">${!cred?'未登录':loading.has(p)?'刷新中':expired?'已过期':c?'可出示':'待刷新'}</span></div><div class="code-area">${c&&!expired?`<img class="${c.type!=='QR'?'bar':''}" src="${esc(c.image)}" alt="${info.name}身份码" data-expand="${p}"><div class="code-text">${c.type==='IMAGE_URL'?'平台原始条码图片':esc(c.content)}</div><div class="caption">${c.expires?'有效至 '+new Date(c.expires).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'静态身份码'} · 点击放大</div>`:`<div class="placeholder">▦</div><div class="caption">${expired?'身份码已过期，请刷新':cred?'点击刷新获取身份码':'账户信息仅保存在本机'}</div>`}</div>${errors[p]?`<div class="error">${esc(errors[p])}</div>`:''}<div class="actions"><button class="${cred?'secondary':'primary'}" data-login="${p}">${cred?'账户管理':'登录 / 导入'}</button>${cred?`<button class="primary" data-code="${p}" ${loading.has(p)?'disabled':''}>刷新身份码</button>`:''}</div></article>`;}
+return `<article class="card"><div class="cardtop">${badge(p)}<div><h2>${info.name}</h2><div class="caption">${cred?'本机账户已保存':'登录后获取身份码'}</div></div><span class="pill">${!cred?'未登录':loading.has(p)?'刷新中':expired?'已过期':c?'可出示':'待刷新'}</span></div><div class="code-area">${c&&!expired?`<img class="${c.type!=='QR'?'bar':''}" src="${esc(c.image)}" alt="${info.name}身份码" data-expand="${p}"><div class="code-text">${c.type==='IMAGE_URL'?'平台原始条码图片':esc(c.content)}</div><div class="caption">${c.expires?'有效至 '+new Date(c.expires).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'静态身份码'} · 点击放大</div>`:`<div class="placeholder">▦</div><div class="caption">${expired?'身份码已过期，请刷新':cred?'点击刷新获取身份码':'账户信息仅保存在本机'}</div>`}</div>${accountNotice(p)}${errors[p]?`<div class="error">${esc(errors[p])}</div>`:''}<div class="actions"><button class="${cred?'secondary':'primary'}" data-login="${p}">${cred?'账户管理':'登录 / 导入'}</button>${cred?`<button class="primary" data-code="${p}" ${loading.has(p)?'disabled':''}>刷新身份码</button>`:''}</div></article>`;}
 function pickupLookupCard(){
  const cred=state.credentials.TAOBAO,result=lookup.owner===cred?lookup.result:null;
  const messages={local_picked:'已标记为已取，本机取件码已删除',picked:'菜鸟显示该包裹已取件',not_found:'未查到该账户下可获取取件码的包裹。请核对运单号及是否已入库。',masked:'已找到包裹，但菜鸟未返回完整取件码，请在菜鸟官方页面查看。'};
@@ -83,8 +83,13 @@ function accountScope(p){
 function pickedKey(p,no){return JSON.stringify([p,accountScope(p),parcelNo(no)]);}
 function locallyPicked(p,no){return !!state.pickedLocal?.[pickedKey(p,no)];}
 async function markPicked(no){
- no=parcelNo(no);if(!no||completing)return;completing=true;
- const oldMarkers={...state.pickedLocal},changed=[];
+ no=parcelNo(no);if(!no||completing)return;if(busy){toast('正在刷新，请稍候再标记');return;}completing=true;
+ const oldMarkers={...state.pickedLocal},oldHistory=state.history,changed=[];
+ const refs=[];
+ for(const [p,c] of Object.entries(state.cache))for(const x of c.items||[])if(parcelNo(x.no)===no)refs.push({platform:p,scope:accountScope(p),no:x.no,station:x.station,summary:x.summary||''});
+ if(!refs.length&&lookup.result?.no===no&&state.credentials.TAOBAO)refs.push({platform:'TAOBAO',scope:accountScope('TAOBAO'),no,station:lookup.result.station||'菜鸟',summary:''});
+ const row={id:Date.now().toString(36)+'-'+(markPicked.serial=(markPicked.serial||0)+1),at:Date.now(),refs,markers:Object.keys(state.credentials).map(p=>({platform:p,scope:accountScope(p),no}))};
+ state.history=[...(state.history||[]),row];
  state.pickedLocal={...oldMarkers};
  for(const p of Object.keys(state.credentials))state.pickedLocal[pickedKey(p,no)]=Date.now();
  for(const [p,cache] of Object.entries(state.cache)){
@@ -94,9 +99,9 @@ async function markPicked(no){
  const oldResult=lookup.result;
  if(parcelNo(lookup.result?.no)===no)lookup.result=null;
  render();
- try{await persist();toast('已取，已删除本机取件码');}
+ try{await persist();recordDiagnostic('pickup',{kind:'ok'});toast('已取，已删除本机取件码',{label:'撤销',run:()=>restorePicked(row.id)});}
  catch(e){
-  state.pickedLocal=oldMarkers;
+  state.pickedLocal=oldMarkers;state.history=oldHistory;
   for(const {cache,oldItems,items} of changed)if(cache.items===items)cache.items=oldItems;
   if(!lookup.result)lookup.result=oldResult;
   toast('保存失败，未删除：'+e.message);
@@ -110,15 +115,16 @@ function packageCard(x){
  const result=lookup.owner===state.credentials.TAOBAO&&lookup.result?.no===no?lookup.result:null;
  const isThisQuery=lookup.input===no;
  const messages={local_picked:'已标记为已取，本机取件码已删除',picked:'菜鸟显示该包裹已取件',not_found:'菜鸟未查到可用取件码',masked:'菜鸟未返回完整取件码'};
- return `<article class="package"><div class="caption">${x.sources.map(p=>Platforms[p].name.split(' · ')[0]).join(' / ')}${x.status==='UNKNOWN'?' · 状态待确认':''}</div><h3>${esc(x.station)}</h3><div class="pickup">${esc(displayedCode||'暂无取件码')}</div>${source?`<div class="caption">取件码来源：${Platforms[source].name}</div>`:''}<div class="caption">${esc(x.summary)}</div><div class="code-text" style="text-align:left;max-width:100%;margin-top:8px">${esc(x.platform==='SF'?'':x.no)}</div><button class="secondary full" data-picked-no="${esc(x.no)}" ${completing?'disabled':''}>已取</button><button class="secondary full" data-cainiao-no="${esc(canQuery?no:'')}" ${!canQuery||lookup.busy?'disabled':''}>${lookup.busy&&isThisQuery?'正在查询…':'通过菜鸟查询取件码'}</button>${!canQuery?'<div class="caption" style="margin-top:8px">该记录未提供可查询的运单号</div>':''}${result&&result.status!=='found'?`<p class="info">${messages[result.status]||'暂未返回取件码'}</p>`:''}${isThisQuery&&lookup.error?`<div class="error">${esc(lookup.error)}</div>`:''}</article>`;
+ return `<article class="package"><div class="caption">${x.sources.map(p=>Platforms[p].name.split(' · ')[0]).join(' / ')}${x.status==='UNKNOWN'?' · 状态待确认':''}</div><h3>${esc(x.station)}</h3><div class="pickup">${esc(displayedCode||'暂无取件码')}</div>${source?`<div class="caption">取件码来源：${Platforms[source].name}</div>`:''}<div class="caption">${esc(x.summary)}</div><div class="code-text" style="text-align:left;max-width:100%;margin-top:8px">${esc(x.platform==='SF'?'':x.no)}</div><button class="secondary full" data-picked-no="${esc(x.no)}" ${completing||busy?'disabled':''}>已取</button><button class="secondary full" data-cainiao-no="${esc(canQuery?no:'')}" ${!canQuery||lookup.busy?'disabled':''}>${lookup.busy&&isThisQuery?'正在查询…':'通过菜鸟查询取件码'}</button>${!canQuery?'<div class="caption" style="margin-top:8px">该记录未提供可查询的运单号</div>':''}${result&&result.status!=='found'?`<p class="info">${messages[result.status]||'暂未返回取件码'}</p>`:''}${isThisQuery&&lookup.error?`<div class="error">${esc(lookup.error)}</div>`:''}</article>`;
 }
 function render(){
  if(tab==='identity')$('main').innerHTML=`<div class="intro"><span>一个地方，出示所有身份码</span><span>${Object.keys(state.credentials).length} / 5</span></div>${Object.keys(Platforms).map(codeCard).join('')}`;
  if(tab==='express'){
   const all=mergeItems(Object.entries(state.cache).flatMap(([p,c])=>(c.items||[]).filter(x=>!locallyPicked(p,x.no)))).filter(x=>x.status!=='PICKED'&&(filter==='ALL'||x.sources.includes(filter)));
-  $('main').innerHTML=`${pickupLookupCard()}<div class="intro"><span>待取包裹 · ${all.length} 件</span><span>按运单号合并</span></div><div class="chips">${['ALL',...Object.keys(Platforms)].map(p=>`<button data-filter="${p}" class="${filter===p?'active':''}">${p==='ALL'?'全部':Platforms[p].name.split(' · ')[0]}</button>`).join('')}</div>${Object.entries(state.cache).map(([p,c])=>`<div class="caption">${Platforms[p].name} · ${ago(c.at)}${c.error?' · 本次更新失败，保留旧记录':''}</div>${c.error?`<div class="error">${esc(c.error)}</div>`:''}`).join('')}${all.length?all.map(packageCard).join(''):`<div class="empty"><div class="big">▣</div>${Object.keys(state.credentials).length?'暂无已获取的待取包裹':'请先登录平台账户'}<p class="caption">点击右上角刷新获取列表</p></div>`}`;
+  const history=visibleHistory().filter(r=>filter==='ALL'||currentHistoryRefs(r).some(x=>x.platform===filter));
+  $('main').innerHTML=`${parcelView==='waiting'?pickupLookupCard():''}<div class="chips parcel-views"><button data-parcel-view="waiting" class="${parcelView==='waiting'?'active':''}">待取</button><button data-parcel-view="history" class="${parcelView==='history'?'active':''}">已取记录 · ${visibleHistory().length}</button></div><div class="intro"><span>${parcelView==='history'?'已取记录 · '+history.length:'待取包裹 · '+all.length} 件</span><span>按运单号合并</span></div><div class="chips">${['ALL',...Object.keys(Platforms)].map(p=>`<button data-filter="${p}" class="${filter===p?'active':''}">${p==='ALL'?'全部':Platforms[p].name.split(' · ')[0]}</button>`).join('')}</div>${Object.entries(state.cache).map(([p,c])=>`<div class="caption">${Platforms[p].name} · ${ago(c.at)}${c.error?' · 本次更新失败，保留旧记录':''}</div>${c.error?`<div class="error">${esc(c.error)}</div>`:''}`).join('')}${parcelView==='history'?(history.map(historyCard).join('')||'<div class="empty">暂无已取记录</div>'):all.length?`<label class="group-toggle"><input id="group-stations" type="checkbox" ${state.groupByStation!==false?'checked':''}>按驿站分组</label>${groupedPackages(all)}`:`<div class="empty"><div class="big">▣</div>${Object.keys(state.credentials).length?'暂无已获取的待取包裹':'请先登录平台账户'}<p class="caption">点击右上角刷新获取列表</p></div>`}`;
  }
- if(tab==='mine')$('main').innerHTML=`<div class="note">账户信息保存在本机，请求直连各平台。</div><div class="section">平台账户</div><div class="card">${Object.entries(Platforms).map(([p,v])=>`<div class="row"><div class="cardtop">${badge(p)}<div><span class="row-title">${v.name}</span><small>${state.credentials[p]?'已保存 · '+ago(state.credentials[p].capturedAt):'未登录'}</small></div></div><button class="secondary small" data-login="${p}">管理</button></div>`).join('')}</div><div class="section">偏好与说明</div><div class="card"><div class="row"><div><span class="row-title">身份码自动刷新</span><small>仅在身份码页面前台运行，每 3 分钟一次</small></div><input id="auto" class="toggle" type="checkbox" ${state.auto?'checked':''} aria-label="身份码自动刷新"></div><div class="info" style="margin-top:16px">支持多个平台身份码、快递聚合和菜鸟取件码查询。<br>点击身份条形码可横向全屏展示。<br>京东目前支持身份码，暂不支持快递列表。</div></div><div class="ver">码上取 iOS · 1.0.3<br>基于 njpemo/mashangqu · MIT License<br>支持 iPhone / iPad · iOS 15 及以上</div>`;
+ if(tab==='mine')$('main').innerHTML=`<div class="note">账户信息保存在本机，请求直连各平台。</div><div class="section">平台账户</div><div class="card">${Object.entries(Platforms).map(([p,v])=>`<div class="row"><div class="cardtop">${badge(p)}<div><span class="row-title">${v.name}</span><small>${state.credentials[p]?(checkingAccounts.has(p)?'正在联网检查…':healthLabels[accountHealth(p)?.kind]||'已保存 · 待检查'):'未登录'}</small></div></div><div class="account-buttons">${state.credentials[p]?`<button class="secondary small" data-check-account="${p}" ${checkingAccounts.has(p)?'disabled':''}>检查</button>`:''}<button class="secondary small" data-login="${p}">${['auth','verify'].includes(accountHealth(p)?.kind)?'重新登录':'管理'}</button></div></div>`).join('')}<button id="check-all-accounts" class="secondary full" ${checkingAccounts.size?'disabled':''}>检查所有已登录账户</button></div>${utilityCards()}<div class="section">偏好与说明</div><div class="card"><div class="row"><div><span class="row-title">身份码自动刷新</span><small>仅在身份码页面前台运行，每 3 分钟一次</small></div><input id="auto" class="toggle" type="checkbox" ${state.auto?'checked':''} aria-label="身份码自动刷新"></div><div class="info" style="margin-top:16px">支持多个平台身份码、快递聚合和菜鸟取件码查询。<br>点击身份条形码可横向全屏展示。<br>京东目前支持身份码，暂不支持快递列表。</div></div><div class="ver">码上取 iOS · ${APP_VERSION}<br>基于 njpemo/mashangqu · MIT License<br>支持 iPhone / iPad · iOS 15 及以上</div>`;
  if($('pickup-query-form')){
   $('pickup-waybill').oninput=e=>{lookup.input=e.target.value;};
   $('pickup-query-form').onsubmit=e=>{e.preventDefault();submitPickupLookup();};
@@ -134,6 +140,7 @@ function render(){
  });
  document.querySelectorAll('[data-picked-no]').forEach(b=>b.onclick=()=>markPicked(b.dataset.pickedNo));
  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;render();});
+ bindEnhancements();
  if($('auto'))$('auto').onchange=async e=>{const old=state.auto;state.auto=e.target.checked;try{await persist();}catch(err){state.auto=old;toast(err.message);render();}};
 }
 async function saveCredential(p,cred){
@@ -285,12 +292,13 @@ async function ryllForm(){let cap;modal('圆通 · 手机号登录',`<label>手�
  $('ry-login').onclick=async e=>{e.target.disabled=true;try{const phone=$('phone').value.trim(),smsCode=$('sms').value.trim();if(!/^1\d{10}$/.test(phone)||!smsCode)throw Error('请填写手机号和短信验证码');const r=await ryll(null,'/api/user/login?'+query({username:phone,flag:2,smsCode}),{method:'POST',body:''});const j=r.json;const token=j.data?.token||(typeof j.data==='string'?j.data:null)||j.token||Object.entries(r.headers||{}).find(([k])=>k.toLowerCase()==='jwt-token')?.[1];requireString(token,'登录 token');await saveCredential('RYLL',{token,extra:{},capturedAt:Date.now()});}catch(err){fail(err);}finally{if($('ry-login'))$('ry-login').disabled=false;}};
  await load();
 }
-async function refreshCode(p){if(loading.has(p)||!state.credentials[p])return;loading.add(p);delete errors[p];render();
- try{const cred=state.credentials[p],c=await identity(p,cred);if(cred!==state.credentials[p])return;const image=c.type==='IMAGE_URL'?c.content:await native('code',{text:c.content,type:c.type});codes[p]={...c,image};await persist();}catch(e){errors[p]=e.message;}finally{loading.delete(p);render();}}
-async function refresh(){if(busy)return;busy=true;$('refresh').classList.add('busy');
+async function refreshCode(p){if(loading.has(p)||!state.credentials[p])return;const cred=state.credentials[p];loading.add(p);delete errors[p];render();
+ try{const c=await identity(p,cred);if(cred!==state.credentials[p])return;const image=c.type==='IMAGE_URL'?c.content:await native('code',{text:c.content,type:c.type});if(cred!==state.credentials[p])return;codes[p]={...c,image};const kind=p==='SF'&&cred.extra?.staticSeg?'local':'ok';setAccountHealth(p,cred,kind);recordDiagnostic('identity',{platform:p,kind});await persist();}catch(e){if(cred===state.credentials[p]){errors[p]=e.message;const kind=failureKind(e);setAccountHealth(p,cred,kind);recordDiagnostic('identity',{platform:p,kind});}}finally{loading.delete(p);render();}}
+
+async function refresh(){if(busy||completing)return;busy=true;$('refresh').classList.add('busy');
  try{const ps=Object.keys(state.credentials);if(!ps.length){toast('请先登录一个平台');return;}if(tab==='express'){for(const p of ps){const cred=state.credentials[p];try{const items=await express(p,cred);if(state.credentials[p]!==cred)continue;state.cache[p]={items:items.filter(x=>!locallyPicked(p,x.no)),at:Date.now()};}catch(e){if(state.credentials[p]!==cred)continue;state.cache[p]={...state.cache[p],error:e.message};}render();}await persist();}else for(const p of ps)await refreshCode(p);}catch(e){toast(e.message);}finally{busy=false;$('refresh').classList.remove('busy');}}
 $('refresh').onclick=refresh;
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;$('tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));render();window.scrollTo(0,0);});
 setInterval(()=>{if(!document.hidden&&state.auto&&tab==='identity'&&!busy&&$('modal').hidden)refresh();},180000);
 setInterval(()=>{if(tab==='identity'&&!loading.size&&Object.values(codes).some(c=>c.expires&&c.expires<=Date.now()))render();},30000);
-(async()=>{try{const data=await native('load');state={credentials:{},cache:{},...data};render();}catch(e){render();toast(e.message);}})();
+(async()=>{try{const data=await native('load');state={credentials:{},cache:{},...data};hydrateEnhancements();render();if(Object.keys(state.credentials).length&&Date.now()-(Number(state.updateCheckedAt)||0)>86400000)setTimeout(()=>checkUpdates(true),1500);}catch(e){render();toast(e.message);}})();

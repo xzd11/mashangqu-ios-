@@ -1,7 +1,7 @@
 'use strict';
 const pending = new Map(); let serial = 0;
 function native(op,args={}) {return new Promise((resolve,reject)=>{
- const id=++serial; const timer=setTimeout(()=>{pending.delete(id);reject(Error('操作超时，请重试'));},(op==='login'||op==='shareCode')?600000:60000);
+ const id=++serial; const timer=setTimeout(()=>{pending.delete(id);reject(Error('操作超时，请重试'));},(op==='login'||op==='shareCode'||op==='shareText')?600000:60000);
  pending.set(id,{resolve,reject,timer});
  if(window.webkit?.messageHandlers?.bridge) window.webkit.messageHandlers.bridge.postMessage({id,op,args});
  else {clearTimeout(timer);pending.delete(id);reject(Error('请在 iOS 应用内使用此功能'));}
@@ -22,7 +22,10 @@ async function request(url,{method='GET',headers={},body,cookie}={}){
  if(cookie)h.Cookie=cookie;
  for(const [key,value] of Object.entries(h)){if(!/^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/.test(key)||typeof value!=='string'||/[\r\n]/.test(value))throw Error('请求头格式无效，请检查导入凭据是否含换行');}
  if(body!==undefined&&typeof body!=='string'){body=JSON.stringify(body);h['Content-Type']??='application/json;charset=UTF-8';}
- const r=await native('http',{url,method,headers:h,...(body===undefined?{}:{body})});
+ const started=Date.now();let r;
+ try{r=await native('http',{url,method,headers:h,...(body===undefined?{}:{body})});}
+ catch(e){if(typeof recordDiagnostic==='function')recordDiagnostic('http',{platform:requestPlatform(url),kind:failureKind(e),duration:Date.now()-started});throw e;}
+ if(typeof recordDiagnostic==='function')recordDiagnostic('http',{platform:requestPlatform(url),status:r.status,kind:r.status>=200&&r.status<300?'ok':r.status===401?'auth':r.status===429?'rate':r.status>=500?'network':'platform',duration:Date.now()-started});
  if(r.status<200||r.status>=300)throw Error(r.status===401?'登录已失效，请重新登录':'服务器返回 HTTP '+r.status);
  let json;try{json=JSON.parse(r.body);}catch{throw Error('平台未返回 JSON，可能需要重新登录或完成安全验证');}
  return {...r,json};
