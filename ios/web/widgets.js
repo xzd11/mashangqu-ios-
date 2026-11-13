@@ -33,7 +33,7 @@ async function startPickupActivity(no){
  if(completing||busy){toast('请等待当前操作完成');return;}
  const x=widgetItems().find(x=>parcelNo(x.no)===parcelNo(no));if(!x)return;
  const previous=widgetSelection;widgetSelection=widgetItemKey(x);
- try{const payload=widgetPayload(),status=await widgetCommand('start',payload);if(!status?.supported)throw Error('当前安装包未包含小组件扩展，请安装 1.2.0 扩展版');widgetLastSync='';await syncWidgets(payload,true);toast('已开始取件，可在灵动岛或锁屏查看');}
+ try{const payload=widgetPayload(),status=await widgetCommand('start',payload);if(!status?.supported)throw Error('当前安装包未包含小组件扩展，请安装带扩展的版本');widgetLastSync='';await syncWidgets(payload,true);toast('已开始取件，可在灵动岛或锁屏查看');}
  catch(e){widgetSelection=previous;widgetError=e.message;toast(e.message);}
  render();
 }
@@ -43,7 +43,7 @@ async function endPickupActivity(){
 }
 function widgetSettingsCard(){
  const status=widgetStatus;
- return `<section class="card"><h2>灵动岛与桌面小组件</h2><p class="info">桌面小组件显示待取数量与驿站。快递卡片点「开始取件」后，灵动岛和锁屏显示所选包裹的取件码；这会在应用外显示明码。</p><label class="row"><span>桌面小组件显示取件码</span><input id="widget-show-codes" type="checkbox" ${state.widgetShowCodes===true?'checked':''}></label><p class="caption">默认隐藏。开启后取件码将写入本机共享容器，供桌面小组件读取。系统仍可能隐藏敏感内容。</p>${status?`<p class="caption">${status.widgetReady?'小组件共享已就绪':'小组件共享不可用，请检查自签 App Groups 权限'} · ${status.liveSupported?(status.liveEnabled?'实时活动已允许':'实时活动被系统关闭'):'实时活动需要 iOS 16.2+'}</p>`:''}${widgetError?`<p class="error">${esc(widgetError)}</p>`:''}<button id="widget-sync" class="secondary full">检查并同步小组件</button><button id="end-pickup-activity" class="secondary full">结束灵动岛取件活动</button><p class="caption">长按桌面 → 编辑 → 添加小组件 → 码上取。内容来自上次应用内刷新，超过 15 分钟隐藏旧码，请打开 App 更新；后台不会自动请求平台。</p></section>`;
+ return `<section class="card"><h2>灵动岛与桌面小组件</h2><p class="info">桌面小组件显示待取数量与驿站。快递卡片点「开始取件」后，灵动岛和锁屏显示所选包裹的取件码；这会在应用外显示明码。</p><label class="row"><span>桌面小组件显示取件码</span><input id="widget-show-codes" type="checkbox" ${state.widgetShowCodes===true?'checked':''}></label><p class="caption">默认隐藏。开启后取件码将写入本机共享容器，供桌面小组件读取。系统仍可能隐藏敏感内容。</p>${status?`<p class="caption">${status.widgetReady?(status.groupSource==='profile'?'已匹配自签描述文件的共享组':'小组件共享已就绪'):'小组件共享不可用，请检查自签 App Groups 权限'} · ${status.liveSupported?(status.liveEnabled?'实时活动已允许':'实时活动被系统关闭'):'实时活动需要 iOS 16.2+'}</p>`:''}${status?.extensionPresent===false?'<p class="error">安装包中未找到小组件扩展，请检查签名工具是否移除了扩展。</p>':''}${status?.extensionProfileMatches===false?'<p class="error">小组件描述文件授权的应用标识与扩展 Bundle ID 不匹配，可能影响小组件和灵动岛显示。请为扩展配置匹配的签名描述文件。</p>':''}${widgetError?`<p class="error">${esc(widgetError)}</p>`:''}<button id="widget-sync" class="secondary full">检查并同步小组件</button><button id="end-pickup-activity" class="secondary full">结束灵动岛取件活动</button><p class="caption">长按桌面 → 编辑 → 添加小组件 → 码上取。内容来自上次应用内刷新，超过 15 分钟隐藏旧码，请打开 App 更新；后台不会自动请求平台。</p></section>`;
 }
 function bindWidgets(){
  document.querySelectorAll('[data-start-pickup]').forEach(b=>b.onclick=()=>startPickupActivity(b.dataset.startPickup));
