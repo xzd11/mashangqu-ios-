@@ -33,13 +33,23 @@ public final class MSQWidgetBridge: NSObject {
                 }
                 var status: [String: Any] = ["supported": true, "widgetReady": PickupStorage.file != nil,
                                             "liveSupported": false, "liveEnabled": false, "active": false]
+                status["groupSource"] = PickupStorage.resolution.source
+                status["extensionPresent"] = FileManager.default.fileExists(atPath: PickupStorage.extensionURL.appendingPathComponent("Info.plist").path)
+                if let info = Bundle(url: PickupStorage.extensionURL), let identifier = info.bundleIdentifier,
+                   let entitlements = ProvisioningSupport.read(bundleURL: PickupStorage.extensionURL),
+                   let matches = ProvisioningSupport.permits(bundleID: identifier, entitlements: entitlements) {
+                    status["extensionProfileMatches"] = matches
+                }
                 if #available(iOS 16.2, *) {
                     status["liveSupported"] = true
                     status["liveEnabled"] = ActivityAuthorizationInfo().areActivitiesEnabled
                     status["active"] = !Activity<PickupActivityAttributes>.activities.isEmpty
                 }
                 completion(status as NSDictionary, nil)
-            } catch { completion(nil, error.localizedDescription as NSString) }
+            } catch {
+                let native = error as NSError
+                completion(nil, "\(native.localizedDescription)（\(native.domain):\(native.code)）" as NSString)
+            }
         }
     }
     private static func failure(_ message: String) -> NSError {
