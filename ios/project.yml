@@ -6,8 +6,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: '5.0'
-    MARKETING_VERSION: '1.2.0'
-    CURRENT_PROJECT_VERSION: '14'
+    MARKETING_VERSION: '1.2.1'
+    CURRENT_PROJECT_VERSION: '15'
     TARGETED_DEVICE_FAMILY: '1,2'
     MSQ_APP_GROUP: group.ink.mashangqu.ios
     CODE_SIGN_STYLE: Automatic
@@ -19,6 +19,7 @@ targets:
     platform: iOS
     sources:
       - path: native/main.m
+      - path: widgets/ProvisioningSupport.swift
       - path: widgets/PickupModels.swift
       - path: widgets/WidgetBridge.swift
       - path: web
@@ -53,6 +54,7 @@ targets:
     platform: iOS
     deploymentTarget: '16.2'
     sources:
+      - path: widgets/ProvisioningSupport.swift
       - path: widgets/PickupModels.swift
       - path: widgets/PickupWidgets.swift
     settings:
