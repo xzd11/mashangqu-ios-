@@ -43,3 +43,6 @@ ios/*.xcodeproj/
 ios/assets/generated/
 ios/build/
 deliverables/
+
+__pycache__/
+*.pyc
