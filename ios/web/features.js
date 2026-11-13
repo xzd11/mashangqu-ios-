@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 const accountChecks={},checkingAccounts=new Set();
 const diagnostics=[];
 const updateInfo={busy:false,release:null,error:'',checkedAt:0};
@@ -110,7 +110,7 @@ function diagnosticReport(){
 async function exportDiagnostics(){
  try{recordDiagnostic('export',{kind:'ok'});await native('shareText',{text:diagnosticReport()});}catch(e){toast('诊断日志导出失败，请重试');}
 }
-function utilityCards(){return `${updateCard()}<section class="card"><h2>隐私与诊断</h2><p class="info">切换到后台时自动遮挡敏感内容。诊断日志仅包含版本、平台、请求状态、耗时和错误类别，不包含 Cookie、Token、手机号、运单号或取件码。</p><button id="export-diagnostics" class="secondary full">导出脱敏诊断日志</button></section>`;}
+function utilityCards(){return `${widgetSettingsCard()}${updateCard()}<section class="card"><h2>隐私与诊断</h2><p class="info">切换到后台时自动遮挡敏感内容。诊断日志仅包含版本、平台、请求状态、耗时和错误类别，不包含 Cookie、Token、手机号、运单号或取件码。</p><button id="export-diagnostics" class="secondary full">导出脱敏诊断日志</button></section>`;}
 function bindEnhancements(){
  document.querySelectorAll('[data-restore-picked]').forEach(b=>b.onclick=()=>restorePicked(b.dataset.restorePicked));
  document.querySelectorAll('[data-parcel-view]').forEach(b=>b.onclick=()=>{parcelView=b.dataset.parcelView;render();});
