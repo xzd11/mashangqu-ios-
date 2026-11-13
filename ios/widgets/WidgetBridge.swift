@@ -13,8 +13,8 @@ final class MSQWidgetBridge: NSObject {
                 switch action {
                 case "status": break
                 case "sync":
-                    try writeSnapshot(args)
                     if #available(iOS 16.2, *) { await synchronizeActivity(args) }
+                    try writeSnapshot(args)
                 case "start":
                     guard #available(iOS 16.2, *) else { throw failure("实时活动需要 iOS 16.2 或更高版本") }
                     guard UIApplication.shared.applicationState == .active else { throw failure("请在应用前台开始取件") }
