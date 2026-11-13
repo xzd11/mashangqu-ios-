@@ -36,11 +36,19 @@ struct PickupWidgetView: View {
     private var fresh: Bool { entry.date < entry.snapshot.validUntil }
     var body: some View {
         WidgetSurface {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("码上取", systemImage: "shippingbox.fill").font(.caption).foregroundStyle(.indigo)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(entry.snapshot.count)").font(.system(size: 32, weight: .bold, design: .rounded))
-                    Text("件待取").font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("码上取", systemImage: "shippingbox.fill").font(.caption).foregroundStyle(.indigo)
+                    if family != .systemSmall {
+                        Spacer()
+                        Text("\(entry.snapshot.count) 件待取").font(.headline).monospacedDigit()
+                    }
+                }
+                if family == .systemSmall {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(entry.snapshot.count)").font(.system(size: 32, weight: .bold, design: .rounded))
+                        Text("件待取").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 ForEach(Array(entry.snapshot.rows.prefix(family == .systemSmall ? 1 : 3).enumerated()), id: \.offset) { _, row in
                     HStack {
