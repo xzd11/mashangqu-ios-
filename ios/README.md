@@ -74,3 +74,8 @@ python package_ipa.py
 
 
 2026-10-23 发布补记：用户反馈 1.1.0「都没问题」，授权发布。仅在 iPhone 15 上验证适用；自动化环境未独立运行 iOS 真机。
+
+
+## 开发中的 1.2.0 小组件扩展
+
+新增桌面小组件与灵动岛／锁屏取件活动，详见 [WIDGETS.md](WIDGETS.md)。本分支须使用 `bash build_xcode.sh` 在 macOS／Xcode 中构建；上面的旧版 Linux 构建命令仅适用于历史版本，不能生成新的 Widget 扩展。新功能尚待真机验证。
