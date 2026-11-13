@@ -1,0 +1,76 @@
+name: Mashangqu
+options:
+  bundleIdPrefix: ink.mashangqu
+  deploymentTarget:
+    iOS: '15.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '1.2.0'
+    CURRENT_PROJECT_VERSION: '14'
+    TARGETED_DEVICE_FAMILY: '1,2'
+    MSQ_APP_GROUP: group.ink.mashangqu.ios
+    CODE_SIGN_STYLE: Automatic
+    CLANG_ENABLE_OBJC_ARC: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+targets:
+  Mashangqu:
+    type: application
+    platform: iOS
+    sources:
+      - path: native/main.m
+      - path: widgets/PickupModels.swift
+      - path: widgets/WidgetBridge.swift
+      - path: web
+        type: folder
+        buildPhase: resources
+      - path: assets/generated
+        buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ink.mashangqu.ios
+        PRODUCT_MODULE_NAME: Mashangqu
+        SWIFT_OBJC_INTERFACE_HEADER_NAME: Mashangqu-Swift.h
+        SWIFT_INSTALL_OBJC_HEADER: YES
+        GCC_PREPROCESSOR_DEFINITIONS: '$(inherited) MSQ_USE_SDK=1 MSQ_WIDGETS=1'
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: widgets/Mashangqu.entitlements
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+    dependencies:
+      - target: MashangquWidgets
+        embed: true
+      - sdk: UIKit.framework
+      - sdk: WebKit.framework
+      - sdk: CoreImage.framework
+      - sdk: Security.framework
+      - sdk: ActivityKit.framework
+        weak: true
+      - sdk: WidgetKit.framework
+  MashangquWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: '16.2'
+    sources:
+      - path: widgets/PickupModels.swift
+      - path: widgets/PickupWidgets.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ink.mashangqu.ios.widgets
+        INFOPLIST_FILE: widgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: widgets/Mashangqu.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: NO
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: ActivityKit.framework
+schemes:
+  Mashangqu:
+    build:
+      targets:
+        Mashangqu: all
+    archive:
+      config: Release
