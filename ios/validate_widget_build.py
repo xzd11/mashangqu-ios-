@@ -6,8 +6,8 @@ main = plistlib.loads((app / 'Info.plist').read_bytes())
 extension = app / 'PlugIns/MashangquWidgets.appex'
 widget = plistlib.loads((extension / 'Info.plist').read_bytes())
 assert main['NSSupportsLiveActivities'] is True
-assert main['CFBundleShortVersionString'] == widget['CFBundleShortVersionString'] == '1.2.0'
-assert main['CFBundleVersion'] == widget['CFBundleVersion'] == '14'
+assert main['CFBundleShortVersionString'] == widget['CFBundleShortVersionString'] == '1.2.1'
+assert main['CFBundleVersion'] == widget['CFBundleVersion'] == '15'
 assert widget['CFBundleIdentifier'].startswith(main['CFBundleIdentifier'] + '.')
 assert main['MSQAppGroup'] == widget['MSQAppGroup']
 assert '$(' not in main['MSQAppGroup']
