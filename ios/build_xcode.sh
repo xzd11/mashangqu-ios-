@@ -21,5 +21,5 @@ python3 validate_widget_build.py build/xcode/Build/Products/Release-iphoneos/Mas
 mkdir -p build/widget-ipa/Payload ../deliverables
 rm -rf build/widget-ipa/Payload/Mashangqu.app
 cp -R build/xcode/Build/Products/Release-iphoneos/Mashangqu.app build/widget-ipa/Payload/
-(cd build/widget-ipa && /usr/bin/zip -qry ../../../deliverables/Mashangqu-iOS-1.2.0-widgets-self-sign.ipa Payload)
+(cd build/widget-ipa && /usr/bin/zip -qry ../../../deliverables/Mashangqu-iOS-1.2.1-widgets-self-sign.ipa Payload)
 echo 'IPA includes PlugIns/MashangquWidgets.appex. Re-sign the app AND extension with matching App Groups.'
