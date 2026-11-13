@@ -4,6 +4,9 @@ on:
   push:
     branches: [feature/ios-widgets]
     paths: ['ios/**', '.github/workflows/ios-widgets.yml']
+concurrency:
+  group: ios-widgets-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
