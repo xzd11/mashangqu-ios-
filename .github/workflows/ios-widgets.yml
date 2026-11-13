@@ -1,0 +1,45 @@
+name: Build iOS widgets
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/ios-widgets]
+    paths: ['ios/**', '.github/workflows/ios-widgets.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install UI test runtime
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Verify widget integration and regressions
+        run: |
+          mkdir -p ios/build
+          node ios/test_widgets.cjs
+          node ios/test_features.cjs
+          node ios/test_picked.cjs
+          node ios/test_pdd_qr.cjs
+          node ios/test_pdd_verification.cjs
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build app and Widget extension
+        run: bash ios/build_xcode.sh
+      - name: Upload self-sign IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mashangqu-iOS-1.2.0-widgets-self-sign
+          path: deliverables/Mashangqu-iOS-1.2.0-widgets-self-sign.ipa
+          if-no-files-found: error
+      - name: Upload Xcode build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-build-results
+          path: ios/build/xcode/Logs/Build/
