@@ -8,6 +8,9 @@
 #else
 #import "AppleABI.h"
 #endif
+#ifdef MSQ_WIDGETS
+#import "Mashangqu-Swift.h"
+#endif
 static NSString *JSON(id value) {
     NSData *d=[NSJSONSerialization dataWithJSONObject:value options:0 error:0];
     return d?[[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding]:@"null";
@@ -61,6 +64,14 @@ static BOOL AllowedURL(NSURL *url) {
     [cover addSubview:label];[window addSubview:cover];self.privacyCover=cover;
 }
 - (void)revealContent:(id)notification {[self.privacyCover removeFromSuperview];self.privacyCover=nil;}
+#ifdef MSQ_USE_SDK
+- (void)webView:(WKWebView*)web didFinishNavigation:(WKNavigation*)navigation {
+    if(web==self.web && [[NSUserDefaults standardUserDefaults] boolForKey:@"open-express"]) {
+        [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"open-express"];
+        [self.web evaluateJavaScript:@"window.msqOpenExpress && window.msqOpenExpress()" completionHandler:nil];
+    }
+}
+#endif
 - (void)dealloc {[[NSNotificationCenter defaultCenter] removeObserver:self];}
 - (void)webView:(WKWebView*)web decidePolicyForNavigationAction:(WKNavigationAction*)action decisionHandler:(void(^)(NSInteger))handler {
     NSURL *url=action.request.URL;
@@ -104,7 +115,13 @@ static BOOL AllowedURL(NSURL *url) {
     if(![m.body isKindOfClass:[NSDictionary class]]) return;
     NSDictionary *p=m.body; id rid=p[@"id"]; NSString *op=p[@"op"]; NSDictionary *a=p[@"args"];
     if(![a isKindOfClass:[NSDictionary class]]) { [self reply:rid value:nil error:@"请求格式错误"]; return; }
-    if([op isEqualToString:@"load"]) {
+    if([op isEqualToString:@"widgets"]) {
+#ifdef MSQ_WIDGETS
+        [MSQWidgetBridge perform:a completion:^(NSDictionary *value,NSString *error){[self reply:rid value:value error:error];}];
+#else
+        [self reply:rid value:@{@"supported":@NO} error:nil];
+#endif
+    } else if([op isEqualToString:@"load"]) {
         NSMutableDictionary *q=[NSMutableDictionary new];
         [[self keyQuery] enumerateKeysAndObjectsUsingBlock:^(id k,id v,BOOL *stop){q[k]=v;}];
         q[(__bridge id)kSecReturnData]=@YES; q[(__bridge id)kSecMatchLimit]=(__bridge id)kSecMatchLimitOne;
@@ -343,6 +360,17 @@ static BOOL AllowedURL(NSURL *url) {
 @property(strong) UIWindow *window;
 @end
 @implementation MSQDelegate
+#ifdef MSQ_USE_SDK
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary*)options {
+    if(![url.scheme isEqualToString:@"mashangqu"] || ![url.host isEqualToString:@"express"] || url.query.length || url.fragment.length || url.path.length) return NO;
+    MSQController *controller=(MSQController*)self.window.rootViewController;
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"open-express"];
+    [controller.web evaluateJavaScript:@"window.msqOpenExpress && window.msqOpenExpress()" completionHandler:^(id result,NSError *error){
+        if(!error) [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"open-express"];
+    }];
+    return YES;
+}
+#endif
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)options {
     self.window=[[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     self.window.rootViewController=[MSQController new];
