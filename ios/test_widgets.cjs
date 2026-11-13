@@ -22,7 +22,7 @@ const {chromium}=require('playwright'),path=require('path'),assert=require('node
  const start=await page.evaluate(()=>calls.find(x=>x.op==='widgets'&&x.args.action==='start').args);assert.equal(start.active.code,'12-3456');assert.equal(start.active.station,'校园驿站');assert(!JSON.stringify(start).includes('PRIVATE-'));
  await page.locator('[data-picked-no="YT1234567890"]').click();await page.waitForFunction(()=>!completing&&!window.activity);assert.equal(await page.evaluate(()=>widgetSelection),null);
  await page.locator('#toast .toast-action').click();await page.waitForFunction(()=>!completing);assert.equal(await page.evaluate(()=>window.activity),false);
- await page.locator('[data-tab="mine"]').click();assert.equal(await page.locator('#widget-show-codes').isChecked(),false);await page.locator('#widget-show-codes').check();await page.waitForFunction(()=>window.saved.widgetShowCodes===true);
+ await page.locator('[data-tab="mine"]').click();assert.equal(await page.locator('#widget-show-codes').isChecked(),false);await page.locator('#widget-show-codes').check();await page.waitForFunction(()=>window.saved.widgetShowCodes===true);await page.waitForFunction(()=>JSON.parse(widgetLastSync||'{}').showCodes===true);
  // Failed persistence cannot publish a preference that was not saved.
  await page.evaluate(()=>{window.failSave=true;window.calls=[];});await page.locator('#widget-show-codes').uncheck();await page.waitForFunction(()=>state.widgetShowCodes===true);assert.equal(await page.evaluate(()=>calls.filter(x=>x.op==='widgets').length),0);await page.evaluate(()=>window.failSave=false);
  // A removed account cannot leak its cached rows to an extension.
