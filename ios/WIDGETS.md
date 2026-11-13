@@ -46,3 +46,12 @@ GitHub Actions `Build iOS widgets` 在 `feature/ios-widgets` 分支完成界面�
 - [ActivityKit 与实时活动](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities)
 - [WidgetKit 刷新机制](https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date)
 - [App Groups 配置](https://developer.apple.com/documentation/xcode/configuring-app-groups)
+
+
+## 1.2.1 自签适配
+
+优先使用 `MSQAppGroup` 配置的组。当该组不可访问时，读取主 App 与本应用 Widget 扩展描述文件的共同组，按固定顺序选择系统实际允许访问的组。仅提取共享组和应用标识字段，不导出描述文件、设备列表或证书信息。读取配置不等同于验证描述文件签名；实际共享容器权限始终由 iOS 强制检查。
+
+设置页新增扩展缺失、扩展描述文件与 Bundle ID 不匹配提示；实时活动错误保留错误域和错误码，供定位。匹配共享组不能替代正确的扩展签名；主 App 和扩展仍需有效且匹配的签名配置。
+
+新增 `test_widget_profiles.swift`，使用合成配置测试嵌入 XML、共同组筛选、精确／通配符应用标识和异常输入。不包含任何用户实际描述文件数据。
