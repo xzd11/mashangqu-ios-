@@ -357,7 +357,7 @@ static BOOL AllowedURL(NSURL *url) {
 }
 @end
 @interface MSQDelegate:NSObject <UIApplicationDelegate>
-@property(strong) UIWindow *window;
+@property(nonatomic,strong) UIWindow *window;
 @end
 @implementation MSQDelegate
 #ifdef MSQ_USE_SDK
