@@ -37,3 +37,9 @@ Thumbs.db
 /ryll_vcode.png
 *.log
 /server/config.php
+
+# iOS generated Xcode projects and resources
+ios/*.xcodeproj/
+ios/assets/generated/
+ios/build/
+deliverables/
