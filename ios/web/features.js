@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.2';
 const accountChecks={},checkingAccounts=new Set();
 const diagnostics=[];
 const updateInfo={busy:false,release:null,error:'',checkedAt:0};
