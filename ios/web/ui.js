@@ -115,7 +115,7 @@ function packageCard(x){
  const result=lookup.owner===state.credentials.TAOBAO&&lookup.result?.no===no?lookup.result:null;
  const isThisQuery=lookup.input===no;
  const messages={local_picked:'已标记为已取，本机取件码已删除',picked:'菜鸟显示该包裹已取件',not_found:'菜鸟未查到可用取件码',masked:'菜鸟未返回完整取件码'};
- return `<article class="package"><div class="caption">${x.sources.map(p=>Platforms[p].name.split(' · ')[0]).join(' / ')}${x.status==='UNKNOWN'?' · 状态待确认':''}</div><h3>${esc(x.station)}</h3><div class="pickup">${esc(displayedCode||'暂无取件码')}</div>${source?`<div class="caption">取件码来源：${Platforms[source].name}</div>`:''}<div class="caption">${esc(x.summary)}</div><div class="code-text" style="text-align:left;max-width:100%;margin-top:8px">${esc(x.platform==='SF'?'':x.no)}</div><button class="secondary full" data-picked-no="${esc(x.no)}" ${completing||busy?'disabled':''}>已取</button><button class="secondary full" data-cainiao-no="${esc(canQuery?no:'')}" ${!canQuery||lookup.busy?'disabled':''}>${lookup.busy&&isThisQuery?'正在查询…':'通过菜鸟查询取件码'}</button>${!canQuery?'<div class="caption" style="margin-top:8px">该记录未提供可查询的运单号</div>':''}${result&&result.status!=='found'?`<p class="info">${messages[result.status]||'暂未返回取件码'}</p>`:''}${isThisQuery&&lookup.error?`<div class="error">${esc(lookup.error)}</div>`:''}</article>`;
+ return `<article class="package"><div class="caption">${x.sources.map(p=>Platforms[p].name.split(' · ')[0]).join(' / ')}${x.status==='UNKNOWN'?' · 状态待确认':''}</div><h3>${esc(x.station)}</h3><div class="pickup">${esc(displayedCode||'暂无取件码')}</div>${source?`<div class="caption">取件码来源：${Platforms[source].name}</div>`:''}<div class="caption">${esc(x.summary)}</div><div class="code-text" style="text-align:left;max-width:100%;margin-top:8px">${esc(x.platform==='SF'?'':x.no)}</div><button class="primary full" data-start-pickup="${esc(x.no)}" ${completing||busy?'disabled':''}>开始取件 · 灵动岛</button><button class="secondary full" data-picked-no="${esc(x.no)}" ${completing||busy?'disabled':''}>已取</button><button class="secondary full" data-cainiao-no="${esc(canQuery?no:'')}" ${!canQuery||lookup.busy?'disabled':''}>${lookup.busy&&isThisQuery?'正在查询…':'通过菜鸟查询取件码'}</button>${!canQuery?'<div class="caption" style="margin-top:8px">该记录未提供可查询的运单号</div>':''}${result&&result.status!=='found'?`<p class="info">${messages[result.status]||'暂未返回取件码'}</p>`:''}${isThisQuery&&lookup.error?`<div class="error">${esc(lookup.error)}</div>`:''}</article>`;
 }
 function render(){
  if(tab==='identity')$('main').innerHTML=`<div class="intro"><span>一个地方，出示所有身份码</span><span>${Object.keys(state.credentials).length} / 5</span></div>${Object.keys(Platforms).map(codeCard).join('')}`;
@@ -141,12 +141,13 @@ function render(){
  document.querySelectorAll('[data-picked-no]').forEach(b=>b.onclick=()=>markPicked(b.dataset.pickedNo));
  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;render();});
  bindEnhancements();
+ bindWidgets();
  if($('auto'))$('auto').onchange=async e=>{const old=state.auto;state.auto=e.target.checked;try{await persist();}catch(err){state.auto=old;toast(err.message);render();}};
 }
 async function saveCredential(p,cred){
- const old=state.credentials[p];state.credentials[p]=cred;
+ const old=state.credentials[p],oldCache=state.cache[p];state.credentials[p]=cred;delete state.cache[p];
  if(p==='TAOBAO'){lookup.result=null;lookup.error='';lookup.owner=null;}
- try{await persist();}catch(e){if(old)state.credentials[p]=old;else delete state.credentials[p];throw e;}
+ try{await persist();}catch(e){if(old)state.credentials[p]=old;else delete state.credentials[p];if(oldCache)state.cache[p]=oldCache;throw e;}
  delete codes[p];delete errors[p];delete state.cache[p];await persist();$('modal').hidden=true;render();toast('账户已保存在本机');await refreshCode(p);
 }
 function stopPddQr(){if(pddQr){clearTimeout(pddQr.timer);pddVerificationClear(pddQr.verifyContext).catch(()=>{});pddQr=null;}}
@@ -301,4 +302,4 @@ $('refresh').onclick=refresh;
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;$('tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));render();window.scrollTo(0,0);});
 setInterval(()=>{if(!document.hidden&&state.auto&&tab==='identity'&&!busy&&$('modal').hidden)refresh();},180000);
 setInterval(()=>{if(tab==='identity'&&!loading.size&&Object.values(codes).some(c=>c.expires&&c.expires<=Date.now()))render();},30000);
-(async()=>{try{const data=await native('load');state={credentials:{},cache:{},...data};hydrateEnhancements();render();if(Object.keys(state.credentials).length&&Date.now()-(Number(state.updateCheckedAt)||0)>86400000)setTimeout(()=>checkUpdates(true),1500);}catch(e){render();toast(e.message);}})();
+(async()=>{try{const data=await native('load');state={credentials:{},cache:{},...data};hydrateEnhancements();render();await syncWidgets(widgetPayload(),true);if(Object.keys(state.credentials).length&&Date.now()-(Number(state.updateCheckedAt)||0)>86400000)setTimeout(()=>checkUpdates(true),1500);}catch(e){render();toast(e.message);}})();
