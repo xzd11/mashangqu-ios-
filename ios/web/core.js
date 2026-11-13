@@ -9,7 +9,7 @@ function native(op,args={}) {return new Promise((resolve,reject)=>{
 window.nativeReply=({id,value,error})=>{const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);error?p.reject(Error(error)):p.resolve(value);};
 const Platforms={TAOBAO:{name:'淘宝 · 菜鸟',color:'#f37925'},JD:{name:'京东',color:'#db3545'},PDD:{name:'拼多多',color:'#d84236'},SF:{name:'顺丰',color:'#313b45'},RYLL:{name:'如意邻里 · 圆通',color:'#7056ac'}};
 let state={credentials:{},cache:{}}, dirty=Promise.resolve();
-function persist(){const data=JSON.parse(JSON.stringify(state));dirty=dirty.catch(()=>{}).then(()=>native('save',{data}));return dirty;}
+function persist(){const data=JSON.parse(JSON.stringify(state));const widgetData=typeof widgetPayload==='function'?widgetPayload():null;dirty=dirty.catch(()=>{}).then(async()=>{const value=await native('save',{data});if(widgetData)await syncWidgets(widgetData,true);return value;});return dirty;}
 const md5=text=>native('md5',{text});
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 const encode=encodeURIComponent;
