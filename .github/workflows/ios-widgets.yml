@@ -25,6 +25,8 @@ jobs:
       - name: Verify widget integration and regressions
         run: |
           mkdir -p ios/build
+          swiftc ios/widgets/ProvisioningSupport.swift ios/test_widget_profiles.swift -o ios/build/test-profiles
+          ios/build/test-profiles
           node ios/test_widgets.cjs
           node ios/test_features.cjs
           node ios/test_picked.cjs
@@ -37,8 +39,8 @@ jobs:
       - name: Upload self-sign IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Mashangqu-iOS-1.2.0-widgets-self-sign
-          path: deliverables/Mashangqu-iOS-1.2.0-widgets-self-sign.ipa
+          name: Mashangqu-iOS-1.2.1-widgets-self-sign
+          path: deliverables/Mashangqu-iOS-1.2.1-widgets-self-sign.ipa
           if-no-files-found: error
       - name: Upload Xcode build logs on failure
         if: failure()
