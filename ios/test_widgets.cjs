@@ -11,7 +11,7 @@ const {chromium}=require('playwright'),path=require('path'),assert=require('node
    if(m.op==='widgets'&&m.args.action==='start'&&window.denyLive){setTimeout(()=>nativeReply({id:m.id,error:'系统已关闭实时活动'}),0);return;}
    if(m.op==='widgets'&&m.args.action==='start')window.activity=true;
    if(m.op==='widgets'&&(m.args.action==='end'||m.args.action==='sync'&&!m.args.active))window.activity=false;
-   const value=m.op==='load'?window.saved:m.op==='widgets'?{supported:true,widgetReady:true,liveSupported:true,liveEnabled:!window.denyLive,active:window.activity}:true;
+   const value=m.op==='load'?window.saved:m.op==='widgets'?{supported:true,widgetReady:true,groupSource:"profile",extensionPresent:true,extensionProfileMatches:false,liveSupported:true,liveEnabled:!window.denyLive,active:window.activity}:true;
    setTimeout(()=>nativeReply({id:m.id,value}),0);
   }}}};
  });
@@ -22,7 +22,7 @@ const {chromium}=require('playwright'),path=require('path'),assert=require('node
  const start=await page.evaluate(()=>calls.find(x=>x.op==='widgets'&&x.args.action==='start').args);assert.equal(start.active.code,'12-3456');assert.equal(start.active.station,'校园驿站');assert(!JSON.stringify(start).includes('PRIVATE-'));
  await page.locator('[data-picked-no="YT1234567890"]').click();await page.waitForFunction(()=>!completing&&!window.activity);assert.equal(await page.evaluate(()=>widgetSelection),null);
  await page.locator('#toast .toast-action').click();await page.waitForFunction(()=>!completing);assert.equal(await page.evaluate(()=>window.activity),false);
- await page.locator('[data-tab="mine"]').click();assert.equal(await page.locator('#widget-show-codes').isChecked(),false);await page.locator('#widget-show-codes').check();await page.waitForFunction(()=>window.saved.widgetShowCodes===true);await page.waitForFunction(()=>JSON.parse(widgetLastSync||'{}').showCodes===true);
+ await page.locator('[data-tab="mine"]').click();assert(await page.getByText('已匹配自签描述文件的共享组',{exact:false}).isVisible());assert(await page.getByText('小组件描述文件授权的应用标识与扩展 Bundle ID 不匹配',{exact:false}).isVisible());assert.equal(await page.locator('#widget-show-codes').isChecked(),false);await page.locator('#widget-show-codes').check();await page.waitForFunction(()=>window.saved.widgetShowCodes===true);await page.waitForFunction(()=>JSON.parse(widgetLastSync||'{}').showCodes===true);
  // Failed persistence cannot publish a preference that was not saved.
  await page.evaluate(()=>{window.failSave=true;window.calls=[];});await page.locator('#widget-show-codes').uncheck();await page.waitForFunction(()=>state.widgetShowCodes===true);assert.equal(await page.evaluate(()=>calls.filter(x=>x.op==='widgets').length),0);await page.evaluate(()=>window.failSave=false);
  // A removed account cannot leak its cached rows to an extension.
