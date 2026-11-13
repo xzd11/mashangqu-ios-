@@ -4,9 +4,9 @@ import WidgetKit
 import UIKit
 
 @objc(MSQWidgetBridge)
-final class MSQWidgetBridge: NSObject {
+public final class MSQWidgetBridge: NSObject {
     @objc(perform:completion:)
-    static func perform(_ args: NSDictionary, completion: @escaping (NSDictionary?, NSString?) -> Void) {
+    public static func perform(_ args: NSDictionary, completion: @escaping (NSDictionary?, NSString?) -> Void) {
         Task { @MainActor in
             do {
                 let action = args["action"] as? String ?? "status"
